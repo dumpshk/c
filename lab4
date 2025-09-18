@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_WORDS 200
+#define MAX_LEN 100
+
+// Keywords
+const char *keywords[] = {
+    "auto","break","case","char","const","continue","default","do","double","else",
+    "enum","extern","float","for","goto","if","int","long","register","return",
+    "short","signed","sizeof","static","struct","switch","typedef","union",
+    "unsigned","void","volatile","while","inline","restrict","_Bool","_Complex",
+    "_Imaginary","include","printf","scanf","main"
+};
+int keyword_count = sizeof(keywords)/sizeof(keywords[0]);
+
+// Operators
+const char *operators[] = {
+    "+","-","*","/","%","=","==","!=","<",">","<=",">=","&&","||","!","&",
+    "|","^","~","<<",">>","++","--"
+};
+int operator_count = sizeof(operators)/sizeof(operators[0]);
+
+// Punctuations
+const char punctuations[] = {';', ',', '(', ')', '{', '}', '[', ']'};
+int punctuation_count = sizeof(punctuations)/sizeof(punctuations[0]);
+
+// Storage
+char keywords_found[MAX_WORDS][MAX_LEN];
+char identifiers[MAX_WORDS][MAX_LEN];
+char operators_found[MAX_WORDS][MAX_LEN];
+char punct_found[MAX_WORDS][MAX_LEN];
+char literals[MAX_WORDS][MAX_LEN];
+
+int k=0,id=0,op=0,punc=0,lit=0;
+
+// --- Utility functions ---
+int inList(char arr[][MAX_LEN], int n, const char *w) {
+    for (int i=0; i<n; i++)
+        if (strcmp(arr[i],w)==0) return 1;
+    return 0;
+}
+int isKeyword(const char *w) {
+    for (int i=0;i<keyword_count;i++)
+        if (strcmp(w,keywords[i])==0) return 1;
+    return 0;
+}
+int isOperator(const char *w) {
+    for (int i=0;i<operator_count;i++)
+        if (strcmp(w,operators[i])==0) return 1;
+    return 0;
+}
+int isPunctuation(char c) {
+    for (int i=0;i<punctuation_count;i++)
+        if (c==punctuations[i]) return 1;
+    return 0;
+}
+int isIdentifier(const char *w) {
+    if (!isalpha(w[0]) && w[0] != '_') return 0;
+    for (int i=1; w[i]; i++)
+        if (!isalnum(w[i]) && w[i] != '_') return 0;
+    return !isKeyword(w);
+}
+int isLiteral(const char *w) {
+    int dot=0;
+    if (isdigit(w[0]) || (w[0]=='.' && isdigit(w[1]))) {
+        for (int i=0;w[i];i++) {
+            if (w[i]=='.') dot++;
+            else if (!isdigit(w[i])) return 0;
+        }
+        return dot<=1;
+    }
+    if (w[0]=='"' && w[strlen(w)-1]=='"') return 1;
+    return 0;
+}
+
+// --- Classify word ---
+void classify(const char *w) {
+    if (isKeyword(w) && !inList(keywords_found,k,w)) strcpy(keywords_found[k++],w);
+    else if (isOperator(w) && !inList(operators_found,op,w)) strcpy(operators_found[op++],w);
+    else if (strlen(w)==1 && isPunctuation(w[0]) && !inList(punct_found,punc,w)) strcpy(punct_found[punc++],w);
+    else if (isLiteral(w) && !inList(literals,lit,w)) strcpy(literals[lit++],w);
+    else if (isIdentifier(w) && !inList(identifiers,id,w)) strcpy(identifiers[id++],w);
+}
+
+// --- Main ---
+int main() {
+    FILE *fp = fopen("input.c","r");
+    if (!fp) return 1;
+
+    char ch, word[MAX_LEN]; int i=0;
+    while ((ch=fgetc(fp))!=EOF) {
+        if (isalnum(ch) || ch=='_' || ch=='.' || ch=='"') {
+            word[i++]=ch;
+        } else {
+            if (i>0) {
+                word[i]='\0'; classify(word); i=0;
+            }
+            if (isPunctuation(ch)) {
+                char temp[2]={ch,'\0'}; classify(temp);
+            } else if (strchr("=!<>+-&|",ch)) {
+                char temp[3]={ch,fgetc(fp),'\0'};
+                if (!isOperator(temp)) { ungetc(temp[1],fp); temp[1]='\0'; }
+                classify(temp);
+            }
+        }
+    }
+    fclose(fp);
+
+    printf("\nKeywords (%d):\n",k);     for(int j=0;j<k;j++) printf("%s\n",keywords_found[j]);
+    printf("\nIdentifiers (%d):\n",id);for(int j=0;j<id;j++) printf("%s\n",identifiers[j]);
+    printf("\nOperators (%d):\n",op);  for(int j=0;j<op;j++) printf("%s\n",operators_found[j]);
+    printf("\nPunctuations (%d):\n",punc);for(int j=0;j<punc;j++) printf("%s\n",punct_found[j]);
+    printf("\nLiterals (%d):\n",lit);  for(int j=0;j<lit;j++) printf("%s\n",literals[j]);
+}
