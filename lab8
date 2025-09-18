@@ -1,0 +1,118 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define N 20
+
+char prod[N][N];  // productions
+int n;            // number of productions
+
+// Add a character to set (avoid duplicates)
+void add(char *set, char c) {
+    if (!strchr(set, c)) {
+        int len = strlen(set);
+        set[len] = c;
+        set[len + 1] = '\0';
+    }
+}
+
+// Compute FIRST set of a symbol
+void FIRST(char c, char *result) {
+    // If terminal, add directly
+    if (!isupper(c)) {
+        add(result, c);
+        return;
+    }
+
+    // Otherwise, look at productions
+    for (int i = 0; i < n; i++) {
+        if (prod[i][0] == c) {
+            if (prod[i][2] == '#') {
+                add(result, '#'); // epsilon
+            } else {
+                int j = 2;
+                while (prod[i][j]) {
+                    char temp[50] = "";
+                    FIRST(prod[i][j], temp);
+
+                    // add everything except epsilon
+                    for (int k = 0; temp[k]; k++) {
+                        if (temp[k] != '#')
+                            add(result, temp[k]);
+                    }
+
+                    if (!strchr(temp, '#'))
+                        break;  // stop if epsilon not found
+                    j++;
+                }
+            }
+        }
+    }
+}
+
+// Compute FOLLOW set of a symbol
+void FOLLOW(char c, char *result) {
+    // Start symbol gets $
+    if (prod[0][0] == c)
+        add(result, '$');
+
+    for (int i = 0; i < n; i++) {
+        int len = strlen(prod[i]);
+        for (int j = 2; j < len; j++) {
+            if (prod[i][j] == c) {
+                if (prod[i][j + 1] != '\0') {
+                    char temp[50] = "";
+                    FIRST(prod[i][j + 1], temp);
+
+                    for (int k = 0; temp[k]; k++) {
+                        if (temp[k] != '#')
+                            add(result, temp[k]);
+                    }
+
+                    if (strchr(temp, '#'))
+                        FOLLOW(prod[i][0], result);
+                } else if (prod[i][0] != c) {
+                    FOLLOW(prod[i][0], result);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    char first[256][50] = {0};
+    char follow[256][50] = {0};
+
+    printf("Enter number of productions: ");
+    scanf("%d", &n);
+
+    printf("Enter productions (e.g., E=TR, use # for epsilon):\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%s", prod[i]);
+    }
+
+    // Compute FIRST and FOLLOW for each non-terminal
+    for (int i = 0; i < n; i++) {
+        char nt = prod[i][0];
+        if (first[nt][0] == '\0')
+            FIRST(nt, first[nt]);
+        if (follow[nt][0] == '\0')
+            FOLLOW(nt, follow[nt]);
+    }
+
+    // Print FIRST sets
+    printf("\nFIRST sets:\n");
+    for (int i = 0; i < n; i++) {
+        char nt = prod[i][0];
+        printf("FIRST(%c) = { %s }\n", nt, first[nt]);
+    }
+
+    // Print FOLLOW sets
+    printf("\nFOLLOW sets:\n");
+    for (int i = 0; i < n; i++) {
+        char nt = prod[i][0];
+        printf("FOLLOW(%c) = { %s }\n", nt, follow[nt]);
+    }
+
+    return 0;
+}
