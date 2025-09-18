@@ -1,0 +1,113 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX 100
+
+// Structure for valid identifiers
+typedef struct {
+    char name[50];
+    char type[20];
+    char value[50];
+} Identifier;
+
+Identifier valid[MAX];
+char invalid[MAX][50];
+int validCount = 0, invalidCount = 0;
+
+char *datatypes[] = {"int", "float", "char", "double", "long", "short", "unsigned", "signed", "void"};
+int datatypeCount = 9;
+
+// Check if a name is a valid identifier
+int isValidName(char *s) {
+    if (!isalpha(s[0]) && s[0] != '_')
+        return 0;
+    for (int i = 1; s[i]; i++) {
+        if (!isalnum(s[i]) && s[i] != '_')
+            return 0;
+    }
+    return 1;
+}
+
+// Check if word is a datatype
+int isDatatype(char *word) {
+    for (int i = 0; i < datatypeCount; i++) {
+        if (strcmp(word, datatypes[i]) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+// Remove spaces from string
+void trim(char *s) {
+    int i = 0, j = 0;
+    char temp[100];
+    while (s[i]) {
+        if (!isspace(s[i]))
+            temp[j++] = s[i];
+        i++;
+    }
+    temp[j] = '\0';
+    strcpy(s, temp);
+}
+
+// Parse declaration line
+void parseDeclaration(char *line) {
+    char type[20], name[50], value[50];
+    char *token, *equal;
+
+    token = strtok(line, " ,;\n");
+    if (!isDatatype(token)) return;   // First word must be datatype
+    strcpy(type, token);
+
+    while ((token = strtok(NULL, " ,;\n")) != NULL) {
+        equal = strchr(token, '=');
+        if (equal != NULL) {
+            strncpy(name, token, equal - token);
+            name[equal - token] = '\0';
+            strcpy(value, equal + 1);
+        } else {
+            strcpy(name, token);
+            strcpy(value, "undefined");
+        }
+
+        trim(name);
+        trim(value);
+
+        if (isValidName(name)) {
+            strcpy(valid[validCount].name, name);
+            strcpy(valid[validCount].type, type);
+            strcpy(valid[validCount].value, value);
+            validCount++;
+        } else {
+            strcpy(invalid[invalidCount++], name);
+        }
+    }
+}
+
+int main() {
+    FILE *fp = fopen("input.c", "r");
+    if (!fp) {
+        printf("Error opening input.c\n");
+        return 1;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), fp)) {
+        parseDeclaration(line);
+    }
+    fclose(fp);
+
+    printf("\nValid Identifiers:\n");
+    printf("%-15s %-10s %-10s\n", "Name", "Type", "Value");
+    for (int i = 0; i < validCount; i++) {
+        printf("%-15s %-10s %-10s\n", valid[i].name, valid[i].type, valid[i].value);
+    }
+
+    printf("\nInvalid Identifiers:\n");
+    for (int i = 0; i < invalidCount; i++) {
+        printf("%s\n", invalid[i]);
+    }
+
+    return 0;
+}
