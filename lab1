@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+int isvalid(char s[100]) {
+    char keywords[][32] = {"true", "false"};
+    int len = strlen(s);
+
+
+    if (!(isalpha(s[0]) || s[0] == '_')) {
+        return -1;
+    }
+
+    for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
+        if (strcmp(keywords[i], s) == 0) {
+            return -1;
+        }
+    }
+
+
+    for (int i = 0; i < len; i++) {
+        if (!(isalpha(s[i]) || isdigit(s[i]) || s[i] == '_')) {
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
+int main() {
+    char s[100];
+    scanf("%99s", s); 
+
+    int x = isvalid(s);
+    if (x == -1) {
+        printf("Invalid");
+    } else {
+        printf("Valid");
+    }
+}
