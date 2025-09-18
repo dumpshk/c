@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX 1024
+
+void trim(char *line) {
+    int i = 0, j = 0;
+    int space = 0;
+    
+    while (isspace(line[i])) i++;
+    
+    for (; line[i]; i++) {
+        if (isspace(line[i])) {
+            if (!space) {  
+                line[j++] = ' ';
+                space = 1;
+            }
+        } else {
+            line[j++] = line[i];
+            space = 0;
+        }
+    }
+
+    if (j > 0 && line[j - 1] == ' ')
+        j--;
+
+    line[j] = '\0';
+}
+
+int main() {
+    FILE *in = fopen("input.txt", "r");
+    FILE *out = fopen("output.txt", "w");
+
+    if (!in || !out) {
+        printf("Error opening file!\n");
+        return 1;
+    }
+
+    char line[MAX];
+    int in_block = 0;
+
+    while (fgets(line, MAX, in)) {
+        char cleaned[MAX] = "";
+        int i = 0, j = 0;
+
+        while (line[i]) {
+            if (!in_block) {
+        
+                if (line[i] == '/' && line[i+1] == '*') {
+                    in_block = 1;
+                    i += 2;
+                }
+          
+                else if (line[i] == '/' && line[i+1] == '/') {
+                    break; 
+                }
+                else {
+                    cleaned[j++] = line[i++];
+                }
+            } else {
+       
+                if (line[i] == '*' && line[i+1] == '/') {
+                    in_block = 0;
+                    i += 2;
+                } else {
+                    i++;
+                }
+            }
+        }
+
+        cleaned[j] = '\0';
+        trim(cleaned);
+
+        if (strlen(cleaned) > 0)
+            fprintf(out, "%s\n", cleaned);
+    }
+
+    fclose(in);
+    fclose(out);
+    printf("Cleaned code written to output.txt\n");
+    return 0;
+}
